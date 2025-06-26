@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ESP32 WebSocket</title>
+  <style>
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #2c3e50, #3498db);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+    }
+    .page {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+    }
+    #page1 {
+      display: flex;
+    }
+    h1 {
+      font-size: 3em;
+      text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+    .start-btn {
+      background-color: #f1c40f;
+      color: #000;
+    }
+    .start-btn:hover {
+      background-color: #f39c12;
+    }
+    .led-btn {
+      width: 150px;
+    }
+    .on {
+      background-color: #3498db;
+      color: white;
+    }
+    .on:hover {
+      background-color: #2980b9;
+    }
+    .off {
+      background-color: #e74c3c;
+      color: white;
+    }
+    .off:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+  <!-- Page 1 -->
+  <div class="page" id="page1">
+    <h1>ESP32 WebSocket</h1>
+    <button class="start-btn" onclick="gotoPage2()">Start</button>
+  </div>
+
+  <!-- Page 2 -->
+  <div class="page" id="page2">
+    <h1>LED Control</h1>
+    <button class="led-btn on" onclick="sendMessage('ON')">🔵 LED ON</button>
+    <button class="led-btn off" onclick="sendMessage('OFF')">🔴 LED OFF</button>
+  </div>
+
+  <script>
+    let ws;
+
+    function gotoPage2() {
+      document.getElementById("page1").style.display = "none";
+      document.getElementById("page2").style.display = "flex";
+
+      // WebSocket connect
+      ws = new WebSocket("ws://192.168.182.59:81"); // ← yahan tumhara ESP32 IP daalna
+
+      ws.onopen = () => console.log("✅ WebSocket connected");
+      ws.onmessage = (e) => console.log("📩 From ESP32: " + e.data);
+      ws.onerror = (e) => console.error("❌ WebSocket error:", e);
+      ws.onclose = () => console.warn("⚠️ WebSocket disconnected");
+    }
+
+    function sendMessage(msg) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(msg);
+      } else {
+        alert("WebSocket not connected!");
+      }
+    }
+  </script>
+</body>
+</html>
