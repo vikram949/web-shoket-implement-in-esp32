@@ -2,105 +2,278 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ESP32 WebSocket</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 WebSocket LED Controller</title>
   <style>
     * {
       margin: 0; padding: 0; box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
+    
     body {
-      background: linear-gradient(135deg, #2c3e50, #3498db);
-      height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
       color: white;
     }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    
     .page {
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 30px;
+      gap: 25px;
     }
-    #page1 {
-      display: flex;
-    }
+    
+    #page1 { display: flex; }
+    
     h1 {
-      font-size: 3em;
+      font-size: 2.5em;
+      margin-bottom: 10px;
       text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
     }
-    button {
-      padding: 15px 30px;
-      font-size: 1.2em;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: 0.3s ease;
+    
+    .subtitle {
+      font-size: 1.1em;
+      opacity: 0.8;
+      margin-bottom: 20px;
     }
+    
+    button {
+      padding: 15px 25px;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+    
     .start-btn {
-      background-color: #f1c40f;
+      background: linear-gradient(45deg, #f39c12, #f1c40f);
+      color: #000;
+      min-width: 150px;
+    }
+    
+    .led-btn {
+      min-width: 180px;
+      font-size: 1.2em;
+    }
+    
+    .on-btn {
+      background: linear-gradient(45deg, #27ae60, #2ecc71);
+      color: white;
+    }
+    
+    .off-btn {
+      background: linear-gradient(45deg, #e74c3c, #c0392b);
+      color: white;
+    }
+    
+    .status-btn {
+      background: linear-gradient(45deg, #3498db, #2980b9);
+      color: white;
+    }
+    
+    .connection-status {
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 0.9em;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+    
+    .connected {
+      background: linear-gradient(45deg, #27ae60, #2ecc71);
+    }
+    
+    .disconnected {
+      background: linear-gradient(45deg, #e74c3c, #c0392b);
+    }
+    
+    .connecting {
+      background: linear-gradient(45deg, #f39c12, #f1c40f);
       color: #000;
     }
-    .start-btn:hover {
-      background-color: #f39c12;
+    
+    .message-log {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      max-height: 150px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.9em;
+      text-align: left;
     }
-    .led-btn {
-      width: 150px;
+    
+    .log-entry {
+      margin-bottom: 5px;
+      padding: 2px 0;
     }
-    .on {
-      background-color: #3498db;
-      color: white;
+    
+    .ip-input {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1em;
+      margin-bottom: 20px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+      min-width: 200px;
     }
-    .on:hover {
-      background-color: #2980b9;
-    }
-    .off {
-      background-color: #e74c3c;
-      color: white;
-    }
-    .off:hover {
-      background-color: #c0392b;
+    
+    @media (max-width: 480px) {
+      .container { padding: 30px 20px; }
+      h1 { font-size: 2em; }
+      button { padding: 12px 20px; font-size: 1em; }
     }
   </style>
 </head>
 <body>
-  <!-- Page 1 -->
-  <div class="page" id="page1">
-    <h1>ESP32 WebSocket</h1>
-    <button class="start-btn" onclick="gotoPage2()">Start</button>
-  </div>
-
-  <!-- Page 2 -->
-  <div class="page" id="page2">
-    <h1>LED Control</h1>
-    <button class="led-btn on" onclick="sendMessage('ON')">🔵 LED ON</button>
-    <button class="led-btn off" onclick="sendMessage('OFF')">🔴 LED OFF</button>
+  <div class="container">
+    <!-- Page 1: Connection Setup -->
+    <div class="page" id="page1">
+      <h1>🔌 ESP32 Controller</h1>
+      <div class="subtitle">WebSocket LED Control</div>
+      <div style="font-size: 0.9em; opacity: 0.7; margin-bottom: 10px;">
+        ⚡ Created by Vicky
+      </div>
+      <input type="text" class="ip-input" id="ipInput" placeholder="ESP32 IP Address (e.g., 192.168.1.100)" value="192.168.182.59">
+      <button class="start-btn" onclick="connectToESP32()">🚀 Connect</button>
+    </div>
+    
+    <!-- Page 2: LED Control -->
+    <div class="page" id="page2">
+      <h1>💡 LED Control</h1>
+      <div style="font-size: 0.9em; opacity: 0.8; margin-bottom: 15px;">
+        ⚡ Created by Vicky
+      </div>
+      <div class="connection-status" id="connectionStatus">🔄 Connecting...</div>
+      
+      <div style="display: flex; flex-direction: column; gap: 15px;">
+        <button class="led-btn on-btn" onclick="sendMessage('ON')">🟢 Turn LED ON</button>
+        <button class="led-btn off-btn" onclick="sendMessage('OFF')">🔴 Turn LED OFF</button>
+        <button class="led-btn status-btn" onclick="sendMessage('STATUS')">❓ Check Status</button>
+      </div>
+      
+      <button onclick="goBack()" style="background: rgba(255,255,255,0.2); color: white; margin-top: 20px;">
+        ← Back to Connection
+      </button>
+      
+      <div class="message-log" id="messageLog">
+        <div class="log-entry">📋 Message log:</div>
+      </div>
+    </div>
   </div>
 
   <script>
     let ws;
-
-    function gotoPage2() {
-      document.getElementById("page1").style.display = "none";
-      document.getElementById("page2").style.display = "flex";
-
-      // WebSocket connect
-      ws = new WebSocket("ws://192.168.182.59:81"); // ← yahan tumhara ESP32 IP daalna
-
-      ws.onopen = () => console.log("✅ WebSocket connected");
-      ws.onmessage = (e) => console.log("📩 From ESP32: " + e.data);
-      ws.onerror = (e) => console.error("❌ WebSocket error:", e);
-      ws.onclose = () => console.warn("⚠️ WebSocket disconnected");
+    let currentIP = '';
+    
+    function connectToESP32() {
+      const ipInput = document.getElementById('ipInput');
+      const ip = ipInput.value.trim();
+      
+      if (!ip) {
+        alert('❌ Please enter ESP32 IP address!');
+        return;
+      }
+      
+      currentIP = ip;
+      document.getElementById('page1').style.display = 'none';
+      document.getElementById('page2').style.display = 'flex';
+      
+      updateConnectionStatus('🔄 Connecting...', 'connecting');
+      
+      // WebSocket connection
+      ws = new WebSocket(`ws://${ip}:81`);
+      
+      ws.onopen = () => {
+        console.log('✅ WebSocket connected to ESP32');
+        updateConnectionStatus('✅ Connected to ESP32', 'connected');
+        addLogEntry('✅ Connected to ESP32 at ' + ip);
+      };
+      
+      ws.onmessage = (event) => {
+        console.log('📩 ESP32 says:', event.data);
+        addLogEntry('📩 ESP32: ' + event.data);
+      };
+      
+      ws.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        updateConnectionStatus('❌ Connection Error', 'disconnected');
+        addLogEntry('❌ Connection error occurred');
+      };
+      
+      ws.onclose = () => {
+        console.warn('⚠️ WebSocket disconnected');
+        updateConnectionStatus('⚠️ Disconnected', 'disconnected');
+        addLogEntry('⚠️ Disconnected from ESP32');
+      };
     }
-
-    function sendMessage(msg) {
+    
+    function sendMessage(message) {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(msg);
+        ws.send(message);
+        addLogEntry('📤 Sent: ' + message);
+        console.log('📤 Sent to ESP32:', message);
       } else {
-        alert("WebSocket not connected!");
+        alert('❌ WebSocket not connected! Please reconnect.');
+        addLogEntry('❌ Failed to send: ' + message + ' (not connected)');
       }
     }
+    
+    function updateConnectionStatus(text, className) {
+      const statusDiv = document.getElementById('connectionStatus');
+      statusDiv.textContent = text;
+      statusDiv.className = 'connection-status ' + className;
+    }
+    
+    function addLogEntry(message) {
+      const logDiv = document.getElementById('messageLog');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function goBack() {
+      if (ws) {
+        ws.close();
+      }
+      document.getElementById('page2').style.display = 'none';
+      document.getElementById('page1').style.display = 'flex';
+      
+      // Clear log
+      const logDiv = document.getElementById('messageLog');
+      logDiv.innerHTML = '<div class="log-entry">📋 Message log:</div>';
+    }
+    
+    // Auto-focus IP input
+    document.getElementById('ipInput').focus();
   </script>
 </body>
 </html>
